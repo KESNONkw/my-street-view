@@ -1,67 +1,21 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css"/>
-    <style>
-      html, body { margin: 0; height: 100%; }
-      #panorama { width: 100%; height: calc(100% - 50px); }
-      #controls {
-        height: 50px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: #f0f0f0;
-      }
-      button {
-        margin: 0 10px;
-        padding: 8px 16px;
-        font-size: 16px;
-      }
-    </style>
+    <style> html, body { margin: 0; height: 100%; } </style>
   </head>
   <body>
-    <div id="panorama"></div>
-    <div id="controls">
-      <button onclick="prevImage()">← 前へ</button>
-      <button onclick="nextImage()">次へ →</button>
-    </div>
-
+    <div id="panorama" style="width:100%; height:100%;"></div>
     <script>
-      const imageList = [
-        "images/view_001.jpg",
-        "images/view_002.jpg",
-        "images/view_003.jpg"
-      ];
-
       const urlParams = new URLSearchParams(window.location.search);
-      const initialImage = urlParams.get('img');
-      let currentIndex = imageList.indexOf(initialImage);
-      if (currentIndex === -1) currentIndex = 0;
+      const img = urlParams.get('img');
 
-      const viewer = pannellum.viewer('panorama', {
+      pannellum.viewer('panorama', {
         type: 'equirectangular',
-        panorama: imageList[currentIndex],
+        panorama: img,
         autoLoad: true
       });
-
-      function showImage(index) {
-        currentIndex = (index + imageList.length) % imageList.length;
-        viewer.loadScene(viewer.addScene("temp", {
-          type: "equirectangular",
-          panorama: imageList[currentIndex],
-          autoLoad: true
-        }));
-      }
-
-      function nextImage() {
-        showImage(currentIndex + 1);
-      }
-
-      function prevImage() {
-        showImage(currentIndex - 1);
-      }
     </script>
   </body>
 </html>
-
