@@ -40,7 +40,7 @@
 
           // クリック → ファイル名表示
           marker.addListener("click", () => {
-            infoWindow.setContent(`画像ファイル: ${loc.image}`);
+            infoWindow.setContent(` ${loc.image}`);
             infoWindow.open(map, marker);
           });
 
@@ -60,3 +60,4 @@
     </script>
   </body>
 </html>
+
