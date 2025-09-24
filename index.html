@@ -14,14 +14,16 @@
     <script>
       function initMap() {
         const map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 42.5, lng: 142.0 }, // 日高町周辺
+          center: { lat: 42.5, lng: 142.0 },
           zoom: 15,
         });
 
         const locations = [
-          { lat: 42.501, lng: 142.001, image: "images/view_001.jpg" },
-          { lat: 42.502, lng: 142.002, image: "images/view_002.jpg" },
+          { lat: 42.501, lng: 142.001, image: "view_001.jpg" },
+          { lat: 42.502, lng: 142.002, image: "view_002.jpg" },
         ];
+
+        const infoWindow = new google.maps.InfoWindow();
 
         locations.forEach(loc => {
           const marker = new google.maps.Marker({
@@ -29,11 +31,18 @@
             map: map,
           });
 
+          // シングルクリック → ファイル名表示
           marker.addListener("click", () => {
+            infoWindow.setContent(`画像ファイル: ${loc.image}`);
+            infoWindow.open(map, marker);
+          });
+
+          // ダブルクリック → ビューア起動
+          marker.addListener("dblclick", () => {
             const viewer = window.open("", "viewer", "width=800,height=600");
             viewer.document.write(`
               <html><body style="margin:0">
-              <iframe src="viewer.html?img=${loc.image}" width="100%" height="100%" frameborder="0"></iframe>
+              <iframe src="viewer.html?img=images/${loc.image}" width="100%" height="100%" frameborder="0"></iframe>
               </body></html>
             `);
           });
@@ -44,5 +53,3 @@
     </script>
   </body>
 </html>
-
-
