@@ -9,37 +9,6 @@
     </style>
   </head>
   <body>
-    <div id="map"></div>
-    <script>
-      function initMap() {
-        const map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 42.5, lng: 142.0 }, // 日高町周辺
-          zoom: 15,
-        });
-
-        const locations = [
-          { lat: 42.501, lng: 142.001, image: "view_001.jpg" },
-          { lat: 42.502, lng: 142.002, image: "view_002.jpg" },
-        ];
-
-        locations.forEach(loc => {
-          const marker = new google.maps.Marker({
-            position: { lat: loc.lat, lng: loc.lng },
-            map: map,
-          });
-
-          marker.addListener("click", () => {
-            const viewer = window.open("", "viewer", "width=800,height=600");
-            viewer.document.write(`
-              <html><body style="margin:0">
-              <iframe src="viewer.html?img=${loc.image}" width="100%" height="100%" frameborder="0"></iframe>
-              </body></html>
-            `);
-          });
-        });
-      }
-
-      window.onload = initMap;
-    </script>
   </body>
 </html>
+
