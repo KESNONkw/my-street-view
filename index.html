@@ -4,8 +4,6 @@
     <title>自作ストリートビュー</title>
     <meta charset="UTF-8">
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBfDYSQDb_2tYBiNBjC6sy6oT0937Fnzuk"></script>
-    <script src="script.js"></script>
-    <script src="filenames.js"></script>
     <style>
       #map { height: 100vh; width: 100%; margin: 0; padding: 0; }
       html, body { height: 100%; margin: 0; padding: 0; }
@@ -13,22 +11,19 @@
   </head>
   <body>
     <div id="map"></div>
-    <div id="version">Ver. 1.0.3</div>
     <script>
       function initMap() {
         const map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 42.9, lng: 142.7 },
-          zoom: 12,
+          center: { lat: 42.5, lng: 142.0 }, // 日高町周辺
+          zoom: 15,
         });
+
+        const locations = [
+          { lat: 42.501, lng: 142.001, image: "view_001.jpg" },
+          { lat: 42.502, lng: 142.002, image: "view_002.jpg" },
+        ];
 
         const infoWindow = new google.maps.InfoWindow();
-
-        // 電柱画像ファイル名から座標を自動計算
-        const locations = filenames.map(filename => {
-          const denchu = filename.replace(".jpg", "");
-          const { lat, lng } = getLatLon(denchu);
-          return { lat, lng, image: filename };
-        });
 
         locations.forEach(loc => {
           const marker = new google.maps.Marker({
@@ -43,18 +38,18 @@
             }
           });
 
-          // クリック → 電柱番号表示
+          // クリック → ファイル名表示
           marker.addListener("click", () => {
-            infoWindow.setContent(`${loc.image.replace('.jpg', '')}`);
+            infoWindow.setContent(` ${loc.image.replace('.jpg', '')}`);
             infoWindow.open(map, marker);
           });
 
-          // ダブルクリック → viewer.html で360度ビュー表示
+          // ダブルクリック → ビューア起動
           marker.addListener("dblclick", () => {
             const viewer = window.open("", "viewer", "width=800,height=600");
             viewer.document.write(`
               <html><body style="margin:0">
-              <iframe src="viewer.html?image=images/${loc.image}" width="100%" height="100%" frameborder="0"></iframe>
+              <iframe src="viewer.html?img=images/${loc.image}" width="100%" height="100%" frameborder="0"></iframe>
               </body></html>
             `);
           });
@@ -65,7 +60,4 @@
     </script>
   </body>
 </html>
-
-
-
 
