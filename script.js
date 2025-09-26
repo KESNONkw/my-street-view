@@ -1,26 +1,33 @@
-// 楕円体定数（Bessel 1841）と初期化
-const geo = {
-  a: 6377397.155, // 長半径
-  f: 1 / 299.152813, // 扁平率
+// Entry point: 電柱番号 → 緯度・経度
+function getLatLon(denchuNumber) {
+  const { X, Y } = getXY(denchuNumber);
+  const zone = 12; // 北海道12系
+  return {
+    lat: calcLatitude(zone, X, Y),
+    lng: calcLongitude(zone, X, Y)
+  };
+}
+
+// 楕円体定数（Bessel 1841）
+const GEO = {
+  a: 6377397.155,
+  f: 1 / 299.152813,
   m0: 0.9999,
   Pi: Math.PI
 };
-geo.e2 = 2 * geo.f - geo.f ** 2; // 第一離心率²
+GEO.e2 = 2 * GEO.f - GEO.f ** 2;
 
-// 系番号に対応する基準経度・緯度（北海道は12系）
-function GXo(G) {
-  const table = { 12: 142.25 };
-  return table[G] || 0;
+// 系番号 → 基準経度・緯度
+function getCentralLongitude(G) {
+  return { 12: 142.25 }[G] || 0;
 }
-function GYo(G) {
-  const table = { 12: 44 };
-  return table[G] || 0;
+function getCentralLatitude(G) {
+  return { 12: 44 }[G] || 0;
 }
 
 // 子午線弧長 S(φ)
-function S(sita) {
-  const e2 = geo.e2;
-  const a = geo.a;
+function calcMeridianArc(phi) {
+  const { a, e2 } = GEO;
   const terms = [
     1 + (3 / 4) * e2 + (45 / 64) * e2 ** 2,
     (3 / 4) * e2 + (15 / 16) * e2 ** 2,
@@ -29,65 +36,65 @@ function S(sita) {
     (315 / 16384) * e2 ** 4
   ];
   return a * (1 - e2) * (
-    terms[0] * sita
-    - terms[1] * Math.sin(2 * sita) / 2
-    + terms[2] * Math.sin(4 * sita) / 4
-    - terms[3] * Math.sin(6 * sita) / 6
-    + terms[4] * Math.sin(8 * sita) / 8
+    terms[0] * phi
+    - terms[1] * Math.sin(2 * phi) / 2
+    + terms[2] * Math.sin(4 * phi) / 4
+    - terms[3] * Math.sin(6 * phi) / 6
+    + terms[4] * Math.sin(8 * phi) / 8
   );
 }
 
-// φn1：垂線の足の緯度（反復計算）
-function φn1(G, X) {
-  let φn = GYo(G) * geo.Pi / 180;
-  let Sn = S(φn);
-  let M = Sn + X / geo.m0;
-  let φn1;
+// 垂線の足 φn1（反復）
+function calcFootLatitude(G, X) {
+  let phi = getCentralLatitude(G) * GEO.Pi / 180;
+  let S = calcMeridianArc(phi);
+  const M = S + X / GEO.m0;
+  let nextPhi;
   do {
-    φn1 = φn + 2 * (Sn - M) * (1 - geo.e2 * Math.sin(φn) ** 2) ** 1.5 /
-      (3 * geo.e2 * (Sn - M) * Math.sin(φn) * Math.cos(φn) * Math.sqrt(1 - geo.e2 * Math.sin(φn) ** 2)
-       - 2 * geo.a * (1 - geo.e2));
-    if (Math.abs(φn1 - φn) < 0.0000001) break;
-    φn = φn1;
-    Sn = S(φn);
+    nextPhi = phi + 2 * (S - M) * (1 - GEO.e2 * Math.sin(phi) ** 2) ** 1.5 /
+      (3 * GEO.e2 * (S - M) * Math.sin(phi) * Math.cos(phi) * Math.sqrt(1 - GEO.e2 * Math.sin(phi) ** 2)
+       - 2 * GEO.a * (1 - GEO.e2));
+    if (Math.abs(nextPhi - phi) < 1e-7) break;
+    phi = nextPhi;
+    S = calcMeridianArc(phi);
   } while (true);
-  return φn1;
+  return nextPhi;
 }
 
-// φ：緯度計算
-function φ(G, X, Y) {
-  const φ1 = φn1(G, X);
-  const e2 = geo.e2;
-  const N1 = geo.a / Math.sqrt(1 - e2 * Math.sin(φ1) ** 2);
-  const t1 = Math.tan(φ1);
-  const n12 = (e2 / (1 - e2)) * Math.cos(φ1) ** 2;
-  const Y_ = Y / geo.m0;
+// 緯度 φ
+function calcLatitude(G, X, Y) {
+  const phi1 = calcFootLatitude(G, X);
+  const { a, e2, m0, Pi } = GEO;
+  const N1 = a / Math.sqrt(1 - e2 * Math.sin(phi1) ** 2);
+  const t1 = Math.tan(phi1);
+  const n12 = (e2 / (1 - e2)) * Math.cos(phi1) ** 2;
+  const Y_ = Y / m0;
 
-  let φ = φ1
+  const phi = phi1
     - t1 / (2 * N1 ** 2) * (1 + n12) * Y_ ** 2
     + t1 / (24 * N1 ** 4) * (5 + 3 * t1 ** 2 + 6 * n12 - 6 * t1 ** 2 * n12 - 3 * n12 ** 2 - 9 * t1 ** 2 * n12 ** 2) * Y_ ** 4
     - t1 / (720 * N1 ** 6) * (61 + 90 * t1 ** 2 + 45 * t1 ** 4 + 107 * n12 - 162 * t1 ** 2 * n12 - 45 * t1 ** 4 * n12) * Y_ ** 6
     + t1 / (40320 * N1 ** 8) * (1385 + 3633 * t1 ** 2 + 4095 * t1 ** 4 + 1575 * t1 ** 6) * Y_ ** 8;
 
-  return φ * 180 / geo.Pi;
+  return phi * 180 / Pi;
 }
 
-// λ：経度計算
-function λ(G, X, Y) {
-  const φ1 = φn1(G, X);
-  const e2 = geo.e2;
-  const N1 = geo.a / Math.sqrt(1 - e2 * Math.sin(φ1) ** 2);
-  const t1 = Math.tan(φ1);
-  const n12 = (e2 / (1 - e2)) * Math.cos(φ1) ** 2;
-  const Y_ = Y / geo.m0;
+// 経度 λ
+function calcLongitude(G, X, Y) {
+  const phi1 = calcFootLatitude(G, X);
+  const { a, e2, m0, Pi } = GEO;
+  const N1 = a / Math.sqrt(1 - e2 * Math.sin(phi1) ** 2);
+  const t1 = Math.tan(phi1);
+  const n12 = (e2 / (1 - e2)) * Math.cos(phi1) ** 2;
+  const Y_ = Y / m0;
 
-  let λ = GXo(G) * geo.Pi / 180
-    + (1 / N1 / Math.cos(φ1)) * Y_
-    - (1 / 6 / N1 ** 3 / Math.cos(φ1)) * (1 + 2 * t1 ** 2 + n12) * Y_ ** 3
-    + (1 / 120 / N1 ** 5 / Math.cos(φ1)) * (5 + 28 * t1 ** 2 + 24 * t1 ** 4 + 6 * n12 + 8 * t1 ** 2 * n12) * Y_ ** 5
-    - (1 / 5040 / N1 ** 7 / Math.cos(φ1)) * (61 + 662 * t1 ** 2 + 1320 * t1 ** 4 + 720 * t1 ** 6 * n12) * Y_ ** 7;
+  const lambda = getCentralLongitude(G) * Pi / 180
+    + (1 / N1 / Math.cos(phi1)) * Y_
+    - (1 / 6 / N1 ** 3 / Math.cos(phi1)) * (1 + 2 * t1 ** 2 + n12) * Y_ ** 3
+    + (1 / 120 / N1 ** 5 / Math.cos(phi1)) * (5 + 28 * t1 ** 2 + 24 * t1 ** 4 + 6 * n12 + 8 * t1 ** 2 * n12) * Y_ ** 5
+    - (1 / 5040 / N1 ** 7 / Math.cos(phi1)) * (61 + 662 * t1 ** 2 + 1320 * t1 ** 4 + 720 * t1 ** 6 * n12) * Y_ ** 7;
 
-  return λ * 180 / geo.Pi;
+  return lambda * 180 / Pi;
 }
 
 // 電柱番号を分解
@@ -105,7 +112,7 @@ function parseDenchuNumber(number) {
 }
 
 // 各階層のサイズ（画42基準）
-const sizes = {
+const GRID_SIZE = {
   kuY: 9373.875,
   kuX: 10999.125,
   zuY: 937.3875,
@@ -117,17 +124,7 @@ const sizes = {
 // 電柱番号 → X,Y距離
 function getXY(denchuNumber) {
   const d = parseDenchuNumber(denchuNumber);
-  const X = d.kuY * sizes.kuY + d.zuY * sizes.zuY + d.banY * sizes.banY + d.no;
-  const Y = d.kuX * sizes.kuX + d.zuX * sizes.zuX + d.banX * sizes.banX + d.gou;
+  const X = d.kuY * GRID_SIZE.kuY + d.zuY * GRID_SIZE.zuY + d.banY * GRID_SIZE.banY + d.no;
+  const Y = d.kuX * GRID_SIZE.kuX + d.zuX * GRID_SIZE.zuX + d.banX * GRID_SIZE.banX + d.gou;
   return { X, Y };
-}
-
-// 電柱番号 → 緯度・経度（統合関数）
-function getLatLon(denchuNumber) {
-  const { X, Y } = getXY(denchuNumber);
-  const G = 12; // 北海道12系
-  return {
-    lat: φ(G, X, Y),
-    lng: λ(G, X, Y)
-  };
 }
