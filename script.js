@@ -9,15 +9,11 @@ geo.e2 = 2 * geo.f - geo.f ** 2; // 第一離心率²
 
 // 系番号に対応する基準経度・緯度（北海道は12系）
 function GXo(G) {
-  const table = {
-    12: 142.25
-  };
+  const table = { 12: 142.25 };
   return table[G] || 0;
 }
 function GYo(G) {
-  const table = {
-    12: 44
-  };
+  const table = { 12: 44 };
   return table[G] || 0;
 }
 
@@ -92,4 +88,46 @@ function λ(G, X, Y) {
     - (1 / 5040 / N1 ** 7 / Math.cos(φ1)) * (61 + 662 * t1 ** 2 + 1320 * t1 ** 4 + 720 * t1 ** 6 * n12) * Y_ ** 7;
 
   return λ * 180 / geo.Pi;
+}
+
+// 電柱番号を分解
+function parseDenchuNumber(number) {
+  return {
+    kuY: parseInt(number.slice(2, 3)),
+    kuX: parseInt(number.slice(3, 4)),
+    zuY: parseInt(number.slice(4, 5)),
+    zuX: parseInt(number.slice(5, 6)),
+    banY: parseInt(number.slice(6, 7)),
+    banX: parseInt(number.slice(7, 8)),
+    no: parseInt(number.slice(8, 10)),
+    gou: parseInt(number.slice(10, 12))
+  };
+}
+
+// 各階層のサイズ（画42基準）
+const sizes = {
+  kuY: 9373.875,
+  kuX: 10999.125,
+  zuY: 937.3875,
+  zuX: 1099.9125,
+  banY: 93.73875,
+  banX: 109.99125
+};
+
+// 電柱番号 → X,Y距離
+function getXY(denchuNumber) {
+  const d = parseDenchuNumber(denchuNumber);
+  const X = d.kuY * sizes.kuY + d.zuY * sizes.zuY + d.banY * sizes.banY + d.no;
+  const Y = d.kuX * sizes.kuX + d.zuX * sizes.zuX + d.banX * sizes.banX + d.gou;
+  return { X, Y };
+}
+
+// 電柱番号 → 緯度・経度（統合関数）
+function getLatLon(denchuNumber) {
+  const { X, Y } = getXY(denchuNumber);
+  const G = 12; // 北海道12系
+  return {
+    lat: φ(G, X, Y),
+    lng: λ(G, X, Y)
+  };
 }
