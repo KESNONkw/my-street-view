@@ -1,62 +1,66 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <title>My Street View</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-  <style>
-    #map {
-      height: 100vh;
-      width: 100%;
-    }
-    .popup-img {
-      width: 200px;
-      display: block;
-      margin-bottom: 8px;
-    }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
+<html>
+  <head>
+    <title>自作ストリートビュー</title>
+    <meta charset="UTF-8">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBfDYSQDb_2tYBiNBjC6sy6oT0937Fnzuk"></script>
+    <script src="filenames.js"></script>
+    <script src="script.js"></script>
+    <style>
+      #map { height: 100vh; width: 100%; margin: 0; padding: 0; }
+      html, body { height: 100%; margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      function initMap() {
+        const map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: 42.9, lng: 142.7 },
+          zoom: 12,
+        });
 
-  <!-- Leaflet.js -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- 電柱番号解析・座標変換（誤差ゼロモデル） -->
-  <script src="script.js"></script>
+        const infoWindow = new google.maps.InfoWindow();
 
-  <!-- 画像ファイル名一覧（手動列挙） -->
-  <script src="filenames.js"></script>
+        // 電柱画像ファイル名から座標を自動計算
+        const locations = filenames.map(filename => {
+          const denchu = filename.replace(".jpg", "");
+          const { lat, lng } = getLatLon(denchu);
+          return { lat, lng, image: filename };
+        });
 
+        locations.forEach(loc => {
+          const marker = new google.maps.Marker({
+            position: { lat: loc.lat, lng: loc.lng },
+            map: map,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: "#FF0000",
+              fillOpacity: 1,
+              strokeWeight: 0
+            }
+          });
 
-  <script>
-    // 地図の初期化（北海道中心）
-    const map = L.map("map").setView([42.9, 142.7], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap contributors",
-    }).addTo(map);
+          // クリック → 電柱番号表示
+          marker.addListener("click", () => {
+            infoWindow.setContent(`${loc.image.replace('.jpg', '')}`);
+            infoWindow.open(map, marker);
+          });
 
-    // 電柱画像ファイル名から座標を計算してマーカー表示
-    const locations = filenames.map((filename) => {
-      const denchu = filename.replace(".jpg", "");
-      const { lat, lng } = getLatLon(denchu);
-      return { lat, lng, image: `images/${filename}`, id: denchu };
-    });
+          // ダブルクリック → viewer.html で360度ビュー表示
+          marker.addListener("dblclick", () => {
+            const viewer = window.open("", "viewer", "width=800,height=600");
+            viewer.document.write(`
+              <html><body style="margin:0">
+              <iframe src="viewer.html?image=images/${loc.image}" width="100%" height="100%" frameborder="0"></iframe>
+              </body></html>
+            `);
+          });
+        });
+      }
 
-    locations.forEach(({ lat, lng, image, id }) => {
-      const popupContent = `
-        <img src="${image}" class="popup-img" />
-        <strong>${id}</strong><br />
-        <a href="viewer.html?image=${id}.jpg" target="_blank">360度ビューを見る</a>
-      `;
-      L.marker([lat, lng]).addTo(map).bindPopup(popupContent);
-    });
-  </script>
-</body>
+      window.onload = initMap;
+    </script>
+  </body>
 </html>
-
-
-
